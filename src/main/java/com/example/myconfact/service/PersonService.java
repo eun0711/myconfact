@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
-
 @Service
 @Slf4j
 public class PersonService {
@@ -57,6 +56,15 @@ public class PersonService {
         Person person = personRepository.findById(id).orElseThrow(() -> new RuntimeException("아이디가 존재하지 않습니다."));
 
         person.setName(name);
+
+        personRepository.save(person);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        Person person = personRepository.findById(id).orElseThrow(() -> new RuntimeException("아이디가 존재하지 않습니다."));
+
+        person.setDeleted(true);
 
         personRepository.save(person);
     }
