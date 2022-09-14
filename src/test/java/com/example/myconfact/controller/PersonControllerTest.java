@@ -1,5 +1,6 @@
 package com.example.myconfact.controller;
 
+import com.example.myconfact.domain.Person;
 import com.example.myconfact.repository.PersonRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,13 +11,19 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 @Slf4j
 @SpringBootTest
+@Transactional
 class PersonControllerTest {
     @Autowired
     private PersonController personController;
@@ -84,5 +91,45 @@ class PersonControllerTest {
                 .andExpect(status().isOk());
 
         log.info("people deleted : {}", personRepository.findPeopleDeleted());
+    }
+}
+@Transactional
+@SpringBootTest
+class PersonRepositoryTest {
+    @Autowired
+    private PersonRepository personRepository;
+
+    @Test
+    void crud() {
+        Person person = new Person();
+        person.setName("john");
+        person.setBloodType("A");
+
+        personRepository.save(person);
+
+        List<Person> result = personRepository.findByName("john");
+
+        assertThat(result.size()).isEqualTo(1);
+        assertThat(result.get(0).getName()).isEqualTo("john");
+//        assertThat(result.get(0).getAge()).isEqualTo(10);
+        assertThat(result.get(0).getBloodType()).isEqualTo("A");
+    }
+
+    @Test
+    void findByBloodType() {
+        List<Person> result = personRepository.findByBloodType("A");
+
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(result.get(0).getName()).isEqualTo("martin");
+        assertThat(result.get(1).getName()).isEqualTo("benny");
+    }
+
+    @Test
+    void findByBirthdayBetween() {
+        List<Person> result = personRepository.findByMonthOfBirthday(8);
+
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(result.get(0).getName()).isEqualTo("martin");
+        assertThat(result.get(1).getName()).isEqualTo("sophia");
     }
 }
