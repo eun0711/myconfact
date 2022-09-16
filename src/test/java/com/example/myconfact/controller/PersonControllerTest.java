@@ -1,7 +1,11 @@
 package com.example.myconfact.controller;
 
+import com.example.myconfact.domain.Birthday;
 import com.example.myconfact.domain.Person;
+import com.example.myconfact.dto.PersonDto;
 import com.example.myconfact.repository.PersonRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,7 +16,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.util.NestedServletException;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -20,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 @Slf4j
 @SpringBootTest
 @Transactional
@@ -29,6 +34,8 @@ class PersonControllerTest {
     private PersonController personController;
     @Autowired
     private PersonRepository personRepository;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private MockMvc mockMvc;
 
@@ -62,25 +69,49 @@ class PersonControllerTest {
 
     @Test
     void modifyPerson() throws Exception {
+        PersonDto dto = PersonDto.of("martin", "programming", "판교", LocalDate.now(), "programmer", "010-1111-2222");
+
         mockMvc.perform(
                         MockMvcRequestBuilders.put("/api/person/1")
                                 .contentType(MediaType.APPLICATION_JSON_UTF8)
-                                .content("{\n"
-                                        + "  \"name\": \"martin\",\n"
-                                        + "  \"age\": 20,\n"
-                                        + "  \"bloodType\": \"A\"\n"
-                                        + "}"))
+                                .content(toJsonString(dto)))
                 .andDo(print())
                 .andExpect(status().isOk());
+
+        Person result = personRepository.findById(1L).get();
+
+        assertAll(
+                () -> assertThat(result.getName()).isEqualTo("martin"),
+                () -> assertThat(result.getHobby()).isEqualTo("programming"),
+                () -> assertThat(result.getAddress()).isEqualTo("판교"),
+                () -> assertThat(result.getBirthday()).isEqualTo(Birthday.of(LocalDate.now())),
+                () -> assertThat(result.getJob()).isEqualTo("programmer"),
+                () ->assertThat(result.getPhoneNumber()).isEqualTo("010-1111-2222")
+        );
+    }
+
+    @Test
+    void modifyPersonIfNameIsDifferent() throws Exception {
+        PersonDto dto = PersonDto.of("james", "programming", "판교", LocalDate.now(), "programmer", "010-1111-2222");
+
+        assertThrows(NestedServletException.class, () ->
+                mockMvc.perform(
+                                MockMvcRequestBuilders.put("/api/person/1")
+                                        .contentType(MediaType.APPLICATION_JSON_UTF8)
+                                        .content(toJsonString(dto)))
+                        .andDo(print())
+                        .andExpect(status().isOk()));
     }
 
     @Test
     void modifyName() throws Exception {
         mockMvc.perform(
                         MockMvcRequestBuilders.patch("/api/person/1")
-                                .param("name", "martin22"))
+                                .param("name", "martinModified"))
                 .andDo(print())
                 .andExpect(status().isOk());
+
+        assertThat(personRepository.findById(1L).get().getName()).isEqualTo("martinModified");
     }
 
     @Test
@@ -90,46 +121,10 @@ class PersonControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk());
 
-        log.info("people deleted : {}", personRepository.findPeopleDeleted());
-    }
-}
-@Transactional
-@SpringBootTest
-class PersonRepositoryTest {
-    @Autowired
-    private PersonRepository personRepository;
-
-    @Test
-    void crud() {
-        Person person = new Person();
-        person.setName("john");
-        person.setBloodType("A");
-
-        personRepository.save(person);
-
-        List<Person> result = personRepository.findByName("john");
-
-        assertThat(result.size()).isEqualTo(1);
-        assertThat(result.get(0).getName()).isEqualTo("john");
-//        assertThat(result.get(0).getAge()).isEqualTo(10);
-        assertThat(result.get(0).getBloodType()).isEqualTo("A");
+        assertTrue(personRepository.findPeopleDeleted().stream().anyMatch(person -> person.getId().equals(1L)));
     }
 
-    @Test
-    void findByBloodType() {
-        List<Person> result = personRepository.findByBloodType("A");
-
-        assertThat(result.size()).isEqualTo(2);
-        assertThat(result.get(0).getName()).isEqualTo("martin");
-        assertThat(result.get(1).getName()).isEqualTo("benny");
-    }
-
-    @Test
-    void findByBirthdayBetween() {
-        List<Person> result = personRepository.findByMonthOfBirthday(8);
-
-        assertThat(result.size()).isEqualTo(2);
-        assertThat(result.get(0).getName()).isEqualTo("martin");
-        assertThat(result.get(1).getName()).isEqualTo("sophia");
+    private String toJsonString(PersonDto personDto) throws JsonProcessingException {
+        return objectMapper.writeValueAsString(personDto);
     }
 }
