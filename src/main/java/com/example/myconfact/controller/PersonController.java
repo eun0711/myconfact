@@ -1,7 +1,7 @@
 package com.example.myconfact.controller;
 
 import com.example.myconfact.domain.Person;
-import com.example.myconfact.domain.PersonDto;
+import com.example.myconfact.controller.dto.PersonDto;
 import com.example.myconfact.repository.PersonRepository;
 import com.example.myconfact.service.PersonService;
 import lombok.extern.slf4j.Slf4j;

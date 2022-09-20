@@ -1,5 +1,6 @@
 package com.example.myconfact.domain;
 
+import com.example.myconfact.controller.dto.PersonDto;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Where;

@@ -1,4 +1,4 @@
-package com.example.myconfact.domain;
+package com.example.myconfact.controller.dto;
 
 import lombok.Data;
 
